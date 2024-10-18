@@ -1162,6 +1162,7 @@ class Grammar extends BaseGrammar
         // simply makes creating the SQL easier for us since we can utilize the same
         // basic routine regardless of an amount of records given to us to insert.
         $table = $this->wrapTable($query->from);
+        $valuesWrapped = false;
 
         if (empty($values)) {
             return "insert into {$table} default values";
@@ -1169,6 +1170,22 @@ class Grammar extends BaseGrammar
 
         if (! is_array(reset($values))) {
             $values = [$values];
+        } else {
+            // If your first item of $values is [] and the second item is 'name' then the above if statement will
+            // always fail, as a result this should catch any that fall through the cracks
+            // Especially useful for people doing text inserts of []
+
+            // Go through each value and check for sure this is a batch insert, or a single insert
+            foreach ($values as $value) {
+                if (! is_array($value)) {
+                    $valuesWrapped = true;
+                    break;
+                }
+            }
+
+            if ($valuesWrapped) {
+                $values = [$values];
+            }
         }
 
         $columns = $this->columnize(array_keys(reset($values)));
